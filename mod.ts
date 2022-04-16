@@ -8,33 +8,40 @@ interface Arg {
 	takesValue: boolean;
 }
 
+interface Args {
+	[index: string]: Arg;
+}
+
 class Command {
-	constructor(args: Arg[]) {
-		this.args = args;
+	constructor(args: Args) {
+		this.#args = new Map();
+		for (const [k, v] of Object.entries(args)) {
+			this.#args.set(k, v);
+		}
 	}
 
-	args: Arg[] = [];
+	#args: Map<string, Arg>;
 
-	shorts(): Map<string, boolean> {
-		let map = new Map<string, boolean>();
-		for (const arg of this.args) {
+	#shorts(): Map<string, boolean> {
+		const map = new Map<string, boolean>();
+		for (const arg of this.#args.values()) {
 			for (const c of arg.short) map.set(c, arg.takesValue);
 		}
 		return map;
 	}
 
-	longs(): Map<string, boolean> {
-		let map = new Map<string, boolean>();
-		for (const arg of this.args) {
+	#longs(): Map<string, boolean> {
+		const map = new Map<string, boolean>();
+		for (const arg of this.#args.values()) {
 			for (const s of arg.long) map.set(s, arg.takesValue);
 		}
 		return map;
 	}
 
 	preprocess(argv: string[]): string[] {
-		let processed: string[] = [];
-		const shorts = this.shorts();
-		const longs = this.longs();
+		const processed: string[] = [];
+		const shorts = this.#shorts();
+		const longs = this.#longs();
 
 		let pos = 0;
 
@@ -90,10 +97,12 @@ class Command {
 }
 
 // test
-function arg(short: string[], long: string[], takesValue: boolean): Arg {
+function arg(short?: string, long?: string, takesValue = false): Arg {
+	const sh = short ? [short] : [];
+	const lo = long ? [long] : [];
 	return {
-		short: short,
-		long: long,
+		short: sh,
+		long: lo,
 		takesValue: takesValue,
 		multi: false,
 		vals: [],
@@ -102,16 +111,15 @@ function arg(short: string[], long: string[], takesValue: boolean): Arg {
 	};
 }
 
-const args = [
-	arg(["i"], ["index"], true),
-	arg(["q"], [], false),
-	arg([], [], true),
-	arg(["o"], ["out"], true),
-].concat(
-	["r", "q", "v"].map((c) => arg([c], [], false)),
-);
+const cmd = new Command({
+	out: arg("o", "out", true),
+	quiet: arg("q", "quiet"),
+	path: arg("p", "path", true),
+	verbose: arg("v", "verbose"),
+	all: arg("a", "all"),
+	oneline: arg("1"),
+});
 
-const cmd = new Command(args);
 for (const s of cmd.preprocess(Deno.args)) {
 	console.log(s);
 }
