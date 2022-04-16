@@ -1,9 +1,9 @@
 interface Arg {
-	required: boolean;
-	long: string[];
-	short: string[];
-	multi: boolean;
-	takesValue: boolean;
+	required?: boolean;
+	flags: string[];
+	multi?: boolean;
+	takesValue?: boolean;
+	validate?(value: string): string | null;
 }
 
 interface ArgState extends Arg {
@@ -12,7 +12,7 @@ interface ArgState extends Arg {
 }
 
 interface Args {
-	[index: string]: Arg;
+	[name: string]: Arg;
 }
 
 class Command {
@@ -28,7 +28,9 @@ class Command {
 	#shorts(): Map<string, boolean> {
 		const map = new Map<string, boolean>();
 		for (const arg of this.#args.values()) {
-			for (const c of arg.short) map.set(c, arg.takesValue);
+			for (const s of arg.flags?.filter((s) => s.length === 1)) {
+				map.set(s, arg.takesValue ?? false);
+			}
 		}
 		return map;
 	}
@@ -36,7 +38,9 @@ class Command {
 	#longs(): Map<string, boolean> {
 		const map = new Map<string, boolean>();
 		for (const arg of this.#args.values()) {
-			for (const s of arg.long) map.set(s, arg.takesValue);
+			for (const s of arg.flags?.filter((s) => s.length > 1)) {
+				map.set(s, arg.takesValue ?? false);
+			}
 		}
 		return map;
 	}
@@ -100,25 +104,15 @@ class Command {
 }
 
 // test
-function arg(short?: string, long?: string, takesValue = false): Arg {
-	const sh = short ? [short] : [];
-	const lo = long ? [long] : [];
-	return {
-		short: sh,
-		long: lo,
-		takesValue: takesValue,
-		multi: false,
-		required: false,
-	};
+function arg(flags: string[], takesValue = false): Arg {
+	return { flags: flags, takesValue: takesValue };
 }
 
 const cmd = new Command({
-	out: arg("o", "out", true),
-	quiet: arg("q", "quiet"),
-	path: arg("p", "path", true),
-	verbose: arg("v", "verbose"),
-	all: arg("a", "all"),
-	oneline: arg("1"),
+	out: arg(["o", "out"], true),
+	verbose: arg(["v", "verbose"]),
+	quiet: arg(["q", "quiet"]),
+	path: arg([], true),
 });
 
 for (const s of cmd.preprocess(Deno.args)) {
