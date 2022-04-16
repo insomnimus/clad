@@ -1,11 +1,14 @@
 interface Arg {
-	vals: string[];
 	required: boolean;
 	long: string[];
 	short: string[];
-	occurrences: number;
 	multi: boolean;
 	takesValue: boolean;
+}
+
+interface ArgState extends Arg {
+	occurrences: number;
+	vals: string[];
 }
 
 interface Args {
@@ -16,11 +19,11 @@ class Command {
 	constructor(args: Args) {
 		this.#args = new Map();
 		for (const [k, v] of Object.entries(args)) {
-			this.#args.set(k, v);
+			this.#args.set(k, { ...v, occurrences: 0, vals: [] });
 		}
 	}
 
-	#args: Map<string, Arg>;
+	#args: Map<string, ArgState>;
 
 	#shorts(): Map<string, boolean> {
 		const map = new Map<string, boolean>();
@@ -105,8 +108,6 @@ function arg(short?: string, long?: string, takesValue = false): Arg {
 		long: lo,
 		takesValue: takesValue,
 		multi: false,
-		vals: [],
-		occurrences: 0,
 		required: false,
 	};
 }
