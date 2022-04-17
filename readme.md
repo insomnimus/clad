@@ -20,9 +20,9 @@ For now there is no support for subcommands.
 Make sure to specify an exact version!
 
 ```ts
-import * as clad from ""https://deno.land/x/clad/mod.ts";
+import * as clad from "https://deno.land/x/clad/mod.ts";
 // Or take what you need:
-// import { Command } from ""https://deno.land/x/clad/mod.ts";
+// import { Command } from "https://deno.land/x/clad/mod.ts";
 ```
 
 ## Usage Example
