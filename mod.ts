@@ -79,7 +79,7 @@ export class Command {
 			});
 		}
 
-		if (firstMultiPositional < lastPositional) {
+		if (firstMultiPositional >= 0 && firstMultiPositional < lastPositional) {
 			throw "positionals with multiple values are only allowed as the last positional";
 		}
 	}
