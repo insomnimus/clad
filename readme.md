@@ -16,6 +16,15 @@ It is inspired by the awesome rust library, [clap](https://github.com/clap-rs/cl
 ## Unsupported
 For now there is no support for subcommands.
 
+## Import
+Make sure to specify an exact version!
+
+```ts
+import * as clad from ""https://deno.land/x/clad/mod.ts";
+// Or take what you need:
+// import { Command } from ""https://deno.land/x/clad/mod.ts";
+```
+
 ## Usage Example
 Please read [this file](./example.ts).
 
