@@ -1,5 +1,6 @@
-type Arg = {
+export type Arg = {
 	required?: boolean;
+	help?: string;
 	flags?: string[];
 	multi?: boolean;
 	takesValue?: boolean;
@@ -14,18 +15,23 @@ interface ArgState extends Arg {
 	vals: string[];
 }
 
-type Args = {
+export type Args = {
 	[name: string]: Arg;
 };
 
-type ArgMatches = {
+export type ArgMatches = {
 	[name: string]: Value;
 };
 
-type Value = undefined | string | string[] | number;
+export type Value = undefined | string | string[] | number;
 
-class Command<T extends Args> {
-	constructor(args: T) {
+export class Command {
+	#name: string;
+	#about?: string;
+	#args: ArgState[];
+
+	constructor(appName: string, args: Args) {
+		this.#name = appName;
 		this.#args = [];
 		let lastPositional = -1;
 		let firstMultiPositional = -1;
@@ -71,7 +77,10 @@ class Command<T extends Args> {
 		}
 	}
 
-	#args: ArgState[];
+	about(msg: string): Command {
+		this.#about = msg;
+		return this;
+	}
 
 	#shorts(): Map<string, boolean> {
 		const map = new Map<string, boolean>();
@@ -115,6 +124,45 @@ class Command<T extends Args> {
 	}
 
 	#helpAndExit(_long: boolean): never {
+		const positionals = this.#args.filter((x) => x.isPositional);
+		const opts = this.#args.filter((x) => !x.isPositional);
+
+		const shortHelp = this.#args.flatMap((x) => x.flags).every((x) =>
+			x !== "h"
+		);
+		const longHelp = this.#args.flatMap((x) => x.flags).every((x) =>
+			x !== "help"
+		);
+
+		const hasOpt = shortHelp || longHelp || opts.length > 0;
+		const sOpt = hasOpt ? " [OPTIONS]" : "";
+		const sPos = positionals.length > 0 ? " ARGS..." : "";
+		console.log(`USAGE: ${this.#name}${sOpt}${sPos}`);
+		if (this.#about) console.log(this.#about);
+
+		if (hasOpt || positionals.length !== 0) console.log("");
+
+		if (hasOpt) {
+			console.log("OPTIONS:");
+			for (const opt of opts) {
+				console.log("    " + argHelp(opt));
+			}
+
+			let help = "";
+			if (shortHelp && longHelp) help = "-h, --help";
+			else if (shortHelp) help = "-h";
+			else if (longHelp) help = "--help";
+
+			if (help !== "") console.log(`    ${help}: Show this message and exit`);
+		}
+
+		if (positionals.length !== 0) {
+			if (hasOpt) console.log("");
+			console.log("ARGS:");
+			for (const arg of positionals) {
+				console.log("    " + argHelp(arg));
+			}
+		}
 		Deno.exit(0);
 	}
 
@@ -257,30 +305,16 @@ class Command<T extends Args> {
 	}
 }
 
-// test
-function arg(flags: string[], takesValue = false): Arg {
-	return { flags: flags, takesValue: takesValue };
+function argHelp(arg: ArgState): string {
+	const req = (!arg.takesValue || !arg.required) ? "" : " (required)";
+	const multi = arg.multi ? "..." : "";
+	const valname = (arg.isPositional || arg.takesValue) ? ` <${arg.key}>` : "";
+	const flags = (arg.flags?.filter((x) => x.length === 1) ?? []).map((x) =>
+		"-" + x
+	).concat(
+		(arg.flags?.filter((x) => x.length > 1) ?? []).map((x) => "--" + x),
+	)
+		.join(", ");
+
+	return `${flags}${valname}${multi}: ${arg.help ?? "No help provided"}${req}`;
 }
-
-const cmd = new Command({
-	quiet: { flags: ["q", "quiet"] },
-	verbose: { multi: true, flags: ["v", "verbose"] },
-	path: {
-		required: true,
-		flags: ["p", "path"],
-		takesValue: true,
-	},
-	args: { multi: true, takesValue: true },
-});
-
-const args = cmd.parse(Deno.args);
-console.log(
-	"verbose: ",
-	args.verbose,
-	"\nquiet: ",
-	args.quiet,
-	"\npath: ",
-	args.path,
-	"\nargs: ",
-	args.args,
-);
