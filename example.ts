@@ -1,14 +1,20 @@
 import { Command } from "./mod.ts";
 
 const args = new Command("clad", {
-	quiet: { flags: ["q", "quiet"] },
-	verbose: { multi: true, flags: ["v", "verbose"] },
+	quiet: { flags: ["q", "quiet"], help: "Be more quiet" },
+	verbose: {
+		multi: true,
+		flags: ["v", "verbose"],
+		help: "Enable verbose output",
+	},
 	path: {
 		required: true,
+		default: ".",
+		help: "The path of something",
 		flags: ["p", "path"],
 		takesValue: true,
 	},
-	args: { multi: true, takesValue: true },
+	trailing: { multi: true, help: "Extra arguments" },
 })
 	.about("An example clad app")
 	.parse(Deno.args);
@@ -20,6 +26,6 @@ console.log(
 	args.quiet,
 	"\npath: ",
 	args.path,
-	"\nargs: ",
-	args.args,
+	"\ntrailing: ",
+	args.trailing,
 );

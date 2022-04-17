@@ -1,5 +1,6 @@
 export type Arg = {
 	required?: boolean;
+	default?: string;
 	help?: string;
 	flags?: string[];
 	multi?: boolean;
@@ -37,6 +38,10 @@ export class Command {
 		let firstMultiPositional = -1;
 
 		for (const [i, [k, v]] of Object.entries(args).entries()) {
+			if (v.default !== undefined) {
+				v.required = false;
+				v.takesValue = true;
+			}
 			let isPositional = false;
 			v.flags = v.flags ?? [];
 			for (let i = 0; i < v.flags.length; i++) {
@@ -44,9 +49,10 @@ export class Command {
 					v.flags[i] = v.flags[i].replace(/^\-+/, "");
 				}
 			}
+
 			let name: string;
 			// if it isn't positional
-			if (v.flags?.length ?? 0 !== 0) {
+			if (v.flags!.length !== 0) {
 				const shorts = v.flags!.filter((x) => x.length === 1);
 				const longs = v.flags!.filter((x) => x.length > 1);
 				if (shorts.length > 0 && longs.length > 0) {
@@ -61,6 +67,7 @@ export class Command {
 				if (v.multi && firstMultiPositional < 0) firstMultiPositional = i;
 				name = `<${k}${v.multi ? "..." : ""}>`;
 			}
+			v.takesValue = v.takesValue || isPositional;
 
 			this.#args.push({
 				...v,
@@ -256,7 +263,7 @@ export class Command {
 			}
 		}
 
-		// post validation
+		// Validation
 		for (const flag of this.#args) {
 			if (!flag.multi && flag.occurrences > 1) {
 				this.#errAndExit(`${flag.name} can be specified only once`);
@@ -265,7 +272,12 @@ export class Command {
 			else if (flag.required && flag.occurrences === 0) {
 				this.#errAndExit(`missing required value for ${flag.name}`);
 			}
-
+			if (
+				flag.occurrences === 0 && flag.default !== undefined &&
+				flag.default !== null
+			) {
+				flag.vals = [flag.default!];
+			}
 			for (const val of flag.vals) {
 				const res = flag.validate === undefined
 					? undefined
@@ -279,22 +291,6 @@ export class Command {
 		}
 
 		// everything is fine
-		/*
-		return <{ [key in keyof T]: Value }> this.#args.reduce(
-			(p: Partial<ArgMatches>, val: ArgState) => {
-				const name = val.key;
-				if (val.takesValue && val.multi) {
-					Object.assign(p, { [name]: val.vals });
-				} else if (val.takesValue) {
-					Object.assign(p, { [name]: val.vals.at(0) });
-				} else {
-					Object.assign(p, { [name]: val.occurrences });
-				}
-			},
-			{},
-		);
-		*/
-
 		const obj: ArgMatches = {};
 		for (const v of this.#args) {
 			if (!v.takesValue) obj[v.key] = v.occurrences;
@@ -306,6 +302,7 @@ export class Command {
 }
 
 function argHelp(arg: ArgState): string {
+	const def = (arg.default !== undefined) ? ` [default: ${arg.default}]` : "";
 	const req = (!arg.takesValue || !arg.required) ? "" : " (required)";
 	const multi = arg.multi ? "..." : "";
 	const valname = (arg.isPositional || arg.takesValue) ? ` <${arg.key}>` : "";
@@ -316,5 +313,7 @@ function argHelp(arg: ArgState): string {
 	)
 		.join(", ");
 
-	return `${flags}${valname}${multi}: ${arg.help ?? "No help provided"}${req}`;
+	return `${flags}${valname}${multi}: ${
+		arg.help ?? "No help provided"
+	}${def}${req}`;
 }
