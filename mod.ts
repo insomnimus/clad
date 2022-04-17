@@ -1,12 +1,13 @@
 type Arg = {
 	required?: boolean;
-	flags: string[];
+	flags?: string[];
 	multi?: boolean;
 	takesValue?: boolean;
 	validate?(value: string): string | null;
 };
 
 interface ArgState extends Arg {
+	key: string;
 	name: string;
 	isPositional: boolean;
 	occurrences: number;
@@ -21,20 +22,27 @@ type ArgMatches = {
 	[name: string]: Value;
 };
 
-type Value = undefined | string | string[] | boolean;
+type Value = undefined | string | string[] | number;
 
 class Command<T extends Args> {
 	constructor(args: T) {
-		this.#args = new Map();
+		this.#args = [];
 		let lastPositional = -1;
 		let firstMultiPositional = -1;
+
 		for (const [i, [k, v]] of Object.entries(args).entries()) {
 			let isPositional = false;
+			v.flags = v.flags ?? [];
+			for (let i = 0; i < v.flags.length; i++) {
+				if (v.flags[i].startsWith("-")) {
+					v.flags[i] = v.flags[i].replace(/^\-+/, "");
+				}
+			}
 			let name: string;
 			// if it isn't positional
 			if (v.flags?.length ?? 0 !== 0) {
-				const shorts = v.flags.filter((x) => x.length === 1);
-				const longs = v.flags.filter((x) => x.length > 1);
+				const shorts = v.flags!.filter((x) => x.length === 1);
+				const longs = v.flags!.filter((x) => x.length > 1);
 				if (shorts.length > 0 && longs.length > 0) {
 					name = `-${shorts[0]} --${longs[0]}`;
 				} else if (shorts.length > 0) name = "-" + shorts[0];
@@ -48,8 +56,9 @@ class Command<T extends Args> {
 				name = `<${k}${v.multi ? "..." : ""}>`;
 			}
 
-			this.#args.set(k, {
+			this.#args.push({
 				...v,
+				key: k,
 				occurrences: 0,
 				vals: [],
 				name: name,
@@ -58,18 +67,16 @@ class Command<T extends Args> {
 		}
 
 		if (lastPositional !== firstMultiPositional) {
-			throw `positionals with multiple values are only allowed as the last positional (${
-				this.#args[firstMultiPositional].name
-			})`;
+			throw "positionals with multiple values are only allowed as the last positional";
 		}
 	}
 
-	#args: Map<string, ArgState>;
+	#args: ArgState[];
 
 	#shorts(): Map<string, boolean> {
 		const map = new Map<string, boolean>();
-		for (const arg of this.#args.values()) {
-			for (const s of arg.flags?.filter((s) => s.length === 1)) {
+		for (const arg of this.#args) {
+			for (const s of arg.flags!.filter((s) => s.length === 1)) {
 				map.set(s, arg.takesValue ?? false);
 			}
 		}
@@ -78,8 +85,8 @@ class Command<T extends Args> {
 
 	#longs(): Map<string, boolean> {
 		const map = new Map<string, boolean>();
-		for (const arg of this.#args.values()) {
-			for (const s of arg.flags?.filter((s) => s.length > 1)) {
+		for (const arg of this.#args) {
+			for (const s of arg.flags!.filter((s) => s.length > 1)) {
 				map.set(s, arg.takesValue ?? false);
 			}
 		}
@@ -90,13 +97,13 @@ class Command<T extends Args> {
 		if (s.startsWith("--")) {
 			if (s.length == 3) return undefined;
 			const name = s.substring(2);
-			return this.#args.values().find((x) => x.flags?.includes(name) ?? false);
+			return this.#args.find((x) => x.flags?.includes(name) ?? false);
 		} else if (s.length > 1 && s.startsWith("-")) {
 			const name = s.substring(1);
-			return this.#args.values().find((x) => x.flags?.includes(name) ?? false);
+			return this.#args.find((x) => x.flags?.includes(name) ?? false);
 		} else {
 			// find the first positional that has no value
-			const positionals = this.#args.values().filter((x) => x.isPositional);
+			const positionals = this.#args.filter((x) => x.isPositional);
 			if (positionals.length === 0) return undefined;
 			const arg = positionals.find((x) => x.occurrences === 0);
 			if (arg) return arg;
@@ -181,8 +188,8 @@ class Command<T extends Args> {
 			if (flag === undefined) {
 				if (s === "-h") this.#helpAndExit(false);
 				else if (s === "--help") this.#helpAndExit(true);
-				else if (s.startsWith("-")) this.#errAnddExit(`unknown option ${s}`);
-				else $this.#errAndExit(`unexpected value ${s}`);
+				else if (s.startsWith("-")) this.#errAndExit(`unknown option ${s}`);
+				else this.#errAndExit(`unexpected value ${s}`);
 			}
 
 			flag.occurrences++;
@@ -196,13 +203,13 @@ class Command<T extends Args> {
 							`the argument ${flag.name} requires a value but none was supplied`,
 						);
 					}
-					flag.vals.push(s);
+					flag.vals.push(argv[pos]);
 				}
 			}
 		}
 
 		// post validation
-		for (const flag of this.#args.values()) {
+		for (const flag of this.#args) {
 			if (!flag.multi && flag.occurrences > 1) {
 				this.#errAndExit(`${flag.name} can be specified only once`);
 			} // flags are always optional
@@ -224,18 +231,29 @@ class Command<T extends Args> {
 		}
 
 		// everything is fine
-		return <{ [key in keyof T]: Value }> this.#args.entries().reduce(
-			(res, [name, val]) => {
+		/*
+		return <{ [key in keyof T]: Value }> this.#args.reduce(
+			(p: Partial<ArgMatches>, val: ArgState) => {
+				const name = val.key;
 				if (val.takesValue && val.multi) {
 					Object.assign(p, { [name]: val.vals });
 				} else if (val.takesValue) {
-					Object.assign(p, { [name]: v.vals.get(0) });
+					Object.assign(p, { [name]: val.vals.at(0) });
 				} else {
-					Object.assign(p, { [name]: v.occurrences });
+					Object.assign(p, { [name]: val.occurrences });
 				}
 			},
 			{},
 		);
+		*/
+
+		const obj: ArgMatches = {};
+		for (const v of this.#args) {
+			if (!v.takesValue) obj[v.key] = v.occurrences;
+			else if (v.multi) obj[v.key] = v.vals;
+			else obj[v.key] = v.vals.at(0);
+		}
+		return obj;
 	}
 }
 
@@ -245,12 +263,24 @@ function arg(flags: string[], takesValue = false): Arg {
 }
 
 const cmd = new Command({
-	out: arg(["o", "out"], true),
-	verbose: arg(["v", "verbose"]),
-	quiet: arg(["q", "quiet"]),
-	path: arg([], true),
+	quiet: { flags: ["q", "quiet"] },
+	verbose: { multi: true, flags: ["v", "verbose"] },
+	path: {
+		required: true,
+		flags: ["p", "path"],
+		takesValue: true,
+	},
+	args: { multi: true, takesValue: true },
 });
 
-for (const s of cmd.preprocess(Deno.args)) {
-	console.log(s);
-}
+const args = cmd.parse(Deno.args);
+console.log(
+	"verbose: ",
+	args.verbose,
+	"\nquiet: ",
+	args.quiet,
+	"\npath: ",
+	args.path,
+	"\nargs: ",
+	args.args,
+);
