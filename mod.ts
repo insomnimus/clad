@@ -5,7 +5,7 @@ export type Arg = {
 	flags?: string[];
 	multi?: boolean;
 	takesValue?: boolean;
-	validate?(value: string): string | null;
+	validate?(value: string): string | undefined;
 };
 
 interface ArgState extends Arg {
