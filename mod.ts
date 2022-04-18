@@ -1,12 +1,32 @@
-export type Arg = {
+/** A command line argument/flag/option.
+ *
+ * It can take 3 forms:
+ * 1. A positional. If you specify no `flags`, it'll be a positional.
+ * 2. A boolean flag. If you specify at least 1 flag and do not specify `takesValue = true`, it'll be a boolean flag.
+ * 3. An option that takes a value. Specify at least 1 flag and `takesValue = true`. */
+export interface Arg {
+	/** The argument must exist and have a value. Has no effect if `takesValue` is false or undefined. */
 	required?: boolean;
+	/** Specify a default value. Implies `takesValue = true` and `required = false`. */
 	default?: string;
+	/** The help message of this argument. */
 	help?: string;
+	/** A list of flags. Leading hyphons (`-`) will be trimmed.
+	 * If left unspecified or set to `[]`, the argument becomes a positional and `takesValue` is implied.
+	 * Values with 1 length become short flags while longer values become long flags.
+	 * An empty value is an error and the behaviour is unspecified. */
 	flags?: string[];
+	/** If set to `true`, the flag can be specified multiple times and the return value will be `string[]` if it takes value, otherwise the number of occurrences.*/
 	multi?: boolean;
+	/** Specify that the flag takes a value.*/
 	takesValue?: boolean;
+	/** Validation callback. If specified, the callback will be provided the value the flag took.
+	 * If the callback returns `undefined`, the value is accepted. Otherwise an error message will be displayed with the contents being the return value.
+	 *
+	 * Note that you don't need to write "error: ..." since that is automatically done by clad.
+	 * This implies `takesValue = true`. */
 	validate?(value: string): string | undefined;
-};
+}
 
 interface ArgState extends Arg {
 	key: string;
@@ -16,21 +36,38 @@ interface ArgState extends Arg {
 	vals: string[];
 }
 
+/** A map of arguments.
+ *
+ * The order is preserved during parsing and automatic help generation.
+ * The keys are strings and they will be used in automatic help generation. */
 export type Args = {
 	[name: string]: Arg;
 };
 
+/** The return value after parsing.
+ *
+ * The keys will be preserved. */
 export type ArgMatches = {
 	[name: string]: Value;
 };
 
+/** The value a flag can take after parsing.
+ *
+ * For flags that take no value, the value will be the number of occurrences.
+ * For flags that take multiple values, the value will be `string[]`.
+ * If the flag has no values, it'll be `undefined`.
+ * For flags that take 1 value, it'll be `string`. */
 export type Value = undefined | string | string[] | number;
 
+/** The command.*/
 export class Command {
 	#name: string;
 	#about?: string;
 	#args: ArgState[];
 
+	/** Constructs a new `Command` instance with the given flags.
+	 * It will throw an exception if the input is invalid.
+	 * This includes input like a positional with `multi` not being the last positional. */
 	constructor(appName: string, args: Args) {
 		this.#name = appName;
 		this.#args = [];
@@ -38,6 +75,7 @@ export class Command {
 		let firstMultiPositional = -1;
 
 		for (const [i, [k, v]] of Object.entries(args).entries()) {
+			if (v.validate !== undefined) v.takesValue = true;
 			if (v.default !== undefined) {
 				v.required = false;
 				v.takesValue = true;
@@ -84,6 +122,8 @@ export class Command {
 		}
 	}
 
+	/** Set the apps `about` message.
+	 * You can chain a call to this function (it returns `this`). */
 	about(msg: string): Command {
 		this.#about = msg;
 		return this;
@@ -179,7 +219,7 @@ export class Command {
 		Deno.exit(1);
 	}
 
-	preprocess(argv: string[]): string[] {
+	#preprocess(argv: string[]): string[] {
 		const processed: string[] = [];
 		const shorts = this.#shorts();
 		const longs = this.#longs();
@@ -190,7 +230,6 @@ export class Command {
 				processed.push(...argv.slice(pos));
 				break;
 			}
-			// console.log("at ", pos);
 
 			if (s.startsWith("--")) {
 				// Split --arg=val to --arg val
@@ -238,8 +277,12 @@ export class Command {
 		return processed;
 	}
 
+	/** Parse command line arguments and return an object with their values.
+	 *
+	 * Important: Only call this once per instance.
+	 * Provide `Deno.args` to this method. */
 	parse(argv: string[]): ArgMatches {
-		argv = this.preprocess(argv);
+		argv = this.#preprocess(argv);
 
 		for (let pos = 0; pos < argv.length; pos++) {
 			const s = argv[pos];
