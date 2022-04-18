@@ -1,4 +1,6 @@
 # Clad
+[![deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https://deno.land/x/clad@v0.2.2/mod.tshttps://doc.deno.land/https://deno.land/x/clad/mod.ts)
+
 Clad is a simple command line arguments parser. It is inspired by the awesome
 rust library, [clap](https://github.com/clap-rs/clap).
 
@@ -83,6 +85,3 @@ run with --help for more info
 $ deno run ./concat.ts -s ' ' -- --notaflag is not a flag but now it works
 --notaflag is not a flag but now it works
 ```
-
-## Documentation
-Coming soon.
