@@ -261,8 +261,11 @@ export class Command {
 			if (flag === undefined) {
 				if (s === "-h") this.#helpAndExit(false);
 				else if (s === "--help") this.#helpAndExit(true);
-				else if (s.startsWith("-")) this.#errAndExit(`unknown option ${s}`);
-				else this.#errAndExit(`unexpected value ${s}`);
+				else if (s.startsWith("-")) {
+					this.#errAndExit(
+						`unknown option \`${s}\`\nif you meant to supply \`${s}\` as a value rather than a flag, use \`-- ${s}\``,
+					);
+				} else this.#errAndExit(`unexpected value ${s}`);
 			}
 
 			flag.occurrences++;
