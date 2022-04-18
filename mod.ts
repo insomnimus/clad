@@ -66,6 +66,7 @@ export class Command {
 	#name: string;
 	#about?: string;
 	#args: Map<string, ArgState>;
+	#throwOnError = false;
 
 	/** Constructs a new `Command` instance with the given flags.
 	 * It will throw an exception if the input is invalid.
@@ -142,6 +143,12 @@ export class Command {
 	 * You can chain a call to this function (it returns `this`). */
 	about(msg: string): Command {
 		this.#about = msg;
+		return this;
+	}
+
+	/** Throw an exception instead of exiting the app when the input doesn't validate.*/
+	throwOnError(yes: boolean): Command {
+		this.#throwOnError = yes;
 		return this;
 	}
 
@@ -243,6 +250,8 @@ export class Command {
 	}
 
 	#errAndExit(msg: string, suggestHelp = true): never {
+		if (this.#throwOnError) throw `argument valdiation failed: ${msg}`;
+
 		console.log(`error: ${msg}`);
 		if (suggestHelp) console.log("run with --help for more info");
 		Deno.exit(1);
