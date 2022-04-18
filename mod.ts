@@ -186,6 +186,10 @@ export class Command {
 
 		for (let pos = 0; pos < argv.length; pos++) {
 			const s = argv[pos];
+			if (s === "--") {
+				processed.push(...argv.slice(pos));
+				break;
+			}
 			// console.log("at ", pos);
 
 			if (s.startsWith("--")) {
@@ -239,6 +243,20 @@ export class Command {
 
 		for (let pos = 0; pos < argv.length; pos++) {
 			const s = argv[pos];
+			// After --, only take positional arguments
+			if (s === "--") {
+				for (pos = pos + 1; pos < argv.length; pos++) {
+					// using an empty string here can only return positionals which is what we want.
+					const arg = this.#get("");
+					if (arg !== undefined) {
+						arg.occurrences++;
+						arg.vals.push(argv[pos]);
+					} else {
+						this.#errAndExit(`unexpected value ${argv[pos]}`);
+					}
+				}
+				break;
+			}
 			const flag = this.#get(s);
 			if (flag === undefined) {
 				if (s === "-h") this.#helpAndExit(false);

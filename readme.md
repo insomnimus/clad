@@ -1,8 +1,10 @@
 # Clad
-Clad is a simple command line arguments parser.
-It is inspired by the awesome rust library, [clap](https://github.com/clap-rs/clap).
+
+Clad is a simple command line arguments parser. It is inspired by the awesome
+rust library, [clap](https://github.com/clap-rs/clap).
 
 ## Features
+
 - Supports short (`-f`), long (`--long`) and positional arguments.
 - `--option value` and `--option=value` are allowed.
 - `-f value`, `-f=value` and `-fvalue` are also allowed.
@@ -14,9 +16,11 @@ It is inspired by the awesome rust library, [clap](https://github.com/clap-rs/cl
 - Auto generated help message.
 
 ## Unsupported
+
 For now there is no support for subcommands.
 
 ## Import
+
 Make sure to specify an exact version!
 
 ```ts
@@ -26,7 +30,9 @@ import * as clad from "https://deno.land/x/clad/mod.ts";
 ```
 
 ## Usage Example
+
 Please read [this file](./example.ts).
 
 ## Documentation
+
 Coming soon.
