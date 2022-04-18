@@ -10,6 +10,7 @@ rust library, [clap](https://github.com/clap-rs/clap).
 - `-f value`, `-f=value` and `-fvalue` are also allowed.
 - You can combine short flags: `-Syu` is the same as `-S -y -u`.
 - You can specify any flag to take multiple values.
+- You can specify default values.
 - Pass positional values that start with `-` after `--`. E.g.
   `./amyapp -- -somevalue`.
 - Supports required/optional flags.

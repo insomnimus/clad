@@ -26,6 +26,8 @@ export interface Arg {
 	 * Note that you don't need to write "error: ..." since that is automatically done by clad.
 	 * This implies `takesValue = true`. */
 	validate?(value: string): string | undefined;
+	conflicts?: string[];
+	requires?: string[];
 }
 
 interface ArgState extends Arg {
@@ -63,18 +65,32 @@ export type Value = undefined | string | string[] | number;
 export class Command {
 	#name: string;
 	#about?: string;
-	#args: ArgState[];
+	#args: Map<string, ArgState>;
 
 	/** Constructs a new `Command` instance with the given flags.
 	 * It will throw an exception if the input is invalid.
 	 * This includes input like a positional with `multi` not being the last positional. */
 	constructor(appName: string, args: Args) {
 		this.#name = appName;
-		this.#args = [];
+		this.#args = new Map<string, ArgState>();
 		let lastPositional = -1;
 		let firstMultiPositional = -1;
 
 		for (const [i, [k, v]] of Object.entries(args).entries()) {
+			for (const other of v.conflicts ?? []) {
+				if (!args[other]) {
+					throw `the arg ${k} specifies a conflict with a non-existing argument ${other}`;
+				} else if (other === k) {
+					throw `the argument ${k} specifies a conflict with itself`;
+				}
+			}
+			for (const other of v.requires ?? []) {
+				if (!args[other]) {
+					throw `the arg ${k} specifies a non-existing argument (${other}) as required`;
+				} else if (k === other) {
+					throw `the argument ${k} specifies a requirement for itself`;
+				}
+			}
 			if (v.validate !== undefined) v.takesValue = true;
 			if (v.default !== undefined) {
 				v.required = false;
@@ -107,7 +123,7 @@ export class Command {
 			}
 			v.takesValue = v.takesValue || isPositional;
 
-			this.#args.push({
+			this.#args.set(k, {
 				...v,
 				key: k,
 				occurrences: 0,
@@ -131,7 +147,7 @@ export class Command {
 
 	#shorts(): Map<string, boolean> {
 		const map = new Map<string, boolean>();
-		for (const arg of this.#args) {
+		for (const arg of this.#args.values()) {
 			for (const s of arg.flags!.filter((s) => s.length === 1)) {
 				map.set(s, arg.takesValue ?? false);
 			}
@@ -141,7 +157,7 @@ export class Command {
 
 	#longs(): Map<string, boolean> {
 		const map = new Map<string, boolean>();
-		for (const arg of this.#args) {
+		for (const arg of this.#args.values()) {
 			for (const s of arg.flags!.filter((s) => s.length > 1)) {
 				map.set(s, arg.takesValue ?? false);
 			}
@@ -153,13 +169,18 @@ export class Command {
 		if (s.startsWith("--")) {
 			if (s.length == 3) return undefined;
 			const name = s.substring(2);
-			return this.#args.find((x) => x.flags?.includes(name) ?? false);
+			return find(this.#args.values(), (x) => x.flags?.includes(name) ?? false);
 		} else if (s.length > 1 && s.startsWith("-")) {
 			const name = s.substring(1);
-			return this.#args.find((x) => x.flags?.includes(name) ?? false);
+			return find(this.#args.values(), (x) => x.flags?.includes(name) ?? false);
 		} else {
 			// find the first positional that has no value
-			const positionals = this.#args.filter((x) => x.isPositional);
+
+			const positionals = [];
+			for (const x of this.#args.values()) {
+				if (x.isPositional) positionals.push(x);
+			}
+
 			if (positionals.length === 0) return undefined;
 			const arg = positionals.find((x) => x.occurrences === 0);
 			if (arg) return arg;
@@ -171,15 +192,23 @@ export class Command {
 	}
 
 	#helpAndExit(_long: boolean): never {
-		const positionals = this.#args.filter((x) => x.isPositional);
-		const opts = this.#args.filter((x) => !x.isPositional);
+		const positionals: ArgState[] = [];
+		const opts: ArgState[] = [];
+		let shortHelp = true;
+		let longHelp = true;
 
-		const shortHelp = this.#args.flatMap((x) => x.flags).every((x) =>
-			x !== "h"
-		);
-		const longHelp = this.#args.flatMap((x) => x.flags).every((x) =>
-			x !== "help"
-		);
+		for (const x of this.#args.values()) {
+			if (x.isPositional) positionals.push(x);
+			else {
+				opts.push(x);
+				if ((shortHelp || longHelp) && x.flags) {
+					for (const s of x.flags) {
+						if (shortHelp && s === "h") shortHelp = false;
+						if (longHelp && s === "help") longHelp = false;
+					}
+				}
+			}
+		}
 
 		const hasOpt = shortHelp || longHelp || opts.length > 0;
 		const sOpt = hasOpt ? " [OPTIONS]" : "";
@@ -328,7 +357,31 @@ export class Command {
 		}
 
 		// Validation
-		for (const flag of this.#args) {
+		for (const flag of this.#args.values()) {
+			if (flag.occurrences > 0 && flag.conflicts?.length) {
+				for (const other of flag.conflicts!.map((s) => this.#args.get(s))) {
+					if (other!.occurrences > 0) {
+						this.#errAndExit(
+							`${flag.name} cannot be used together with ${other?.name}`,
+							false,
+						);
+					}
+				}
+			}
+			if (flag.occurrences > 0 && flag.requires?.length) {
+				for (
+					const other of flag.requires!.map((s) => this.#args.get(s)).filter((
+						x,
+					) => x !== undefined && x.default === undefined)
+				) {
+					if (other!.occurrences === 0) {
+						this.#errAndExit(
+							`using ${flag.name} requires ${other!.name} to be present`,
+							false,
+						);
+					}
+				}
+			}
 			if (!flag.multi && flag.occurrences > 1) {
 				this.#errAndExit(`${flag.name} can be specified only once`);
 			} // flags are always optional
@@ -336,10 +389,7 @@ export class Command {
 			else if (flag.required && flag.occurrences === 0) {
 				this.#errAndExit(`missing required value for ${flag.name}`);
 			}
-			if (
-				flag.occurrences === 0 && flag.default !== undefined &&
-				flag.default !== null
-			) {
+			if (flag.occurrences === 0 && flag.default !== undefined) {
 				flag.vals = [flag.default!];
 			}
 			for (const val of flag.vals) {
@@ -356,10 +406,10 @@ export class Command {
 
 		// everything is fine
 		const obj: ArgMatches = {};
-		for (const v of this.#args) {
-			if (!v.takesValue) obj[v.key] = v.occurrences;
-			else if (v.multi) obj[v.key] = v.vals;
-			else obj[v.key] = v.vals.at(0);
+		for (const [key, v] of this.#args.entries()) {
+			if (!v.takesValue) obj[key] = v.occurrences;
+			else if (v.multi) obj[key] = v.vals;
+			else obj[key] = v.vals.at(0);
 		}
 		return obj;
 	}
@@ -380,4 +430,12 @@ function argHelp(arg: ArgState): string {
 	return `${flags}${valname}${multi}: ${
 		arg.help ?? "No help provided"
 	}${def}${req}`;
+}
+
+function find<T, F extends { (x: T): boolean }>(
+	iter: IterableIterator<T>,
+	fn: F,
+): T | undefined {
+	for (const x of iter) if (fn(x)) return x;
+	return undefined;
 }
