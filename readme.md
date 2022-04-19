@@ -11,6 +11,7 @@ rust library, [clap](https://github.com/clap-rs/clap).
 - You can combine short flags: `-Syu` is the same as `-S -y -u`.
 - You can specify any flag to take multiple values.
 - You can specify default values.
+- You can limit possible values to a set. (can set the comparison to be case insensitive as well).
 - Pass positional values that start with `-` after `--`. E.g.
   `./amyapp -- -somevalue`.
 - Supports required/optional flags.
@@ -30,59 +31,80 @@ import * as clad from "https://deno.land/x/clad/mod.ts";
 // import { Command } from "https://deno.land/x/clad/mod.ts";
 ```
 
-## Usage Example
-```ts
-import { Command } from "https://deno.land/x/clad/mod.ts";
+## Usage Examples
+For more examples, check out the [examples folder](examples).
 
-const args = new Command("concat", {
-	sep: {
-		help: "The separator used to concatenate words",
-		default: "-",
-		flags: ["s", "sep", "separator"],
-	},
-	cap: {
-		help: "Make each word all caps",
-		flags: ["c", "capitalize"],
-	},
-	words: {
-		help: "Any number of words to join",
-		multi: true,
+```ts
+import { Command } from "../mod.ts";
+
+const args = new Command("bump-version", {
+	bump: {
+		help: "Bump which field?",
+		possible: ["major", "minor", "patch"],
+		ignoreCase: true,
 		required: true,
 	},
+	ver: {
+		help: "The version to bump",
+		required: true,
+		validate: (s) =>
+			s.match(/^\d+\.\d+\.\d+$/)
+				? undefined
+				: "the value must be in the form major.minor.patch where each field is a non-negative number",
+	},
 })
-	.about("Concatenate words with a separator")
+	.about("Increment a semantic version")
 	.parse(Deno.args);
 
-const mapper = (s: string): string => args.cap ? s.toUpperCase() : s;
-console.log((args.words as string[]).map(mapper).join(args.sep as string));
+// WE can trust the input!
+let [major, minor, patch] = (args.ver as string).split(".").map((x) =>
+	parseInt(x)
+);
+
+switch ((args.bump as string).toLowerCase()) {
+	case "major": {
+		major++;
+		minor = 0;
+		patch = 0;
+		break;
+	}
+	case "minor": {
+		minor++;
+		patch = 0;
+		break;
+	}
+	// guaranteed to be "patch"!
+	default: {
+		patch++;
+		break;
+	}
+}
+
+console.log(`${args.ver} -> ${major}.${minor}.${patch}`);
 ```
 
-### Example Output
+### Output
 ```output
-$ deno run ./concat.ts -h
-USAGE: concat [OPTIONS] ARGS...
-Concatenate words with a separator
+$ deno run ./bump-version.ts -h
+USAGE: bump-version [OPTIONS] ARGS...
+Increment a semantic version
 
 OPTIONS:
-    -s, --sep, --separator <sep>: The separator used to concatenate words [default: -]
-    -c, --capitalize: Make each word all caps
     -h, --help: Show this message and exit
 
 ARGS:
-     <words>...: Any number of words to join (required)
-$ deno run ./concat.ts
-error: missing required value for <words...>
+     <bump>: Bump which field? (required) [possible values: major, minor, patch]
+     <ver>: The version to bump (required)
+$ deno run ./bump-version.ts major 1.2.3
+1.2.3 -> 2.0.0
+$ deno run ./bump-version.ts Minor 1.2.3
+1.2.3 -> 1.3.0
+$ deno run ./bump-version.ts PATCH 1.2.3
+1.2.3 -> 1.2.4
+$ deno run ./bump-version.ts lol 1.2.3
+error: failed to validate the 'lol' value of <bump>: value must be one of [major, minor, patch]
 run with --help for more info
-$ deno run ./concat.ts 'it'\''s' a me mario
-it's-a-me-mario
-$ deno run ./concat.ts -s _ snake case
-snake_case
-$ deno run ./concat.ts -cs_ screaming snake case
-SCREAMING_SNAKE_CASE
-$ deno run ./concat.ts --notaflag
-error: unknown option `--notaflag`
-if you meant to supply `--notaflag` as a value rather than a flag, use `-- --notaflag`
+$ deno run ./bump-version.ts minor 1.2.3.4.5
+error: failed to validate the '1.2.3.4.5' value of <ver>: the value must be in the form major.minor.patch where each field is a non-negative number
 run with --help for more info
-$ deno run ./concat.ts -s ' ' -- --notaflag is not a flag but now it works
---notaflag is not a flag but now it works
 ```

@@ -103,7 +103,7 @@ export class Command {
 					for (const val of possible) {
 						if (sx === (ignoreCase ? val.toUpperCase() : val)) return undefined;
 					}
-					return `value must be one of ${possible}`;
+					return `value must be one of [${possible.join(", ")}]`;
 				};
 			}
 			for (const other of v.conflicts ?? []) {
@@ -464,6 +464,9 @@ export class Command {
 
 function argHelp(arg: ArgState): string {
 	const def = (arg.default !== undefined) ? ` [default: ${arg.default}]` : "";
+	const possible = arg.possible?.length
+		? ` [possible values: ${arg.possible!.join(", ")}]`
+		: "";
 	const req = (!arg.takesValue || !arg.required) ? "" : " (required)";
 	const multi = arg.multi ? "..." : "";
 	const valname = (arg.isPositional || arg.takesValue) ? ` <${arg.key}>` : "";
@@ -476,7 +479,7 @@ function argHelp(arg: ArgState): string {
 
 	return `${flags}${valname}${multi}: ${
 		arg.help ?? "No help provided"
-	}${def}${req}`;
+	}${req}${possible}${def}`;
 }
 
 function find<T, F extends { (x: T): boolean }>(
