@@ -92,6 +92,14 @@ const basic: Tests<Basic> = {
 		fail: [],
 		flags: { h: { flags: ["h"] } },
 	},
+	"possible values": {
+		ok: ["", "-pasdf", "-p asdf major", "-- minor", "major"],
+		fail: ["no", "--path=DDD MAJOR", "MINOR"],
+		flags: {
+			path: { flags: ["p", "path"], takesValue: true },
+			kind: { possible: ["major", "minor", "patch"] },
+		},
+	},
 };
 
 Deno.test("basic", () => {

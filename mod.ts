@@ -16,6 +16,14 @@ export interface Arg {
 	 * Values with 1 length become short flags while longer values become long flags.
 	 * An empty value is an error and the behaviour is unspecified. */
 	flags?: string[];
+	/** A set of possible values for this Arg.
+	 *
+	 * - This implies `takesValue = true`.
+	 * - This superseeds `validate` (in fact, it replaces it). */
+	possible?: string[];
+	/** Do case insensitive comparison for values in `possible`.
+	 * Has no effect if `possible` is `undefined` or empty. */
+	ignoreCase?: boolean;
 	/** If set to `true`, the flag can be specified multiple times and the return value will be `string[]` if it takes value, otherwise the number of occurrences.*/
 	multi?: boolean;
 	/** Specify that the flag takes a value.*/
@@ -24,9 +32,16 @@ export interface Arg {
 	 * If the callback returns `undefined`, the value is accepted. Otherwise an error message will be displayed with the contents being the return value.
 	 *
 	 * Note that you don't need to write "error: ..." since that is automatically done by clad.
-	 * This implies `takesValue = true`. */
+	 * - This implies `takesValue = true`.
+	 * - Setting `possible` to a non-empty array will superseed and replace this field. */
 	validate?(value: string): string | undefined;
+	/** Specify that using this argument conflicts with another.
+	 * In order for it to succeed, none of the flags provided must be present in runtime.
+	 * > The values are the keys and not flags themselves. E.g do not use `"--bla"`, use the name of the key. */
 	conflicts?: string[];
+	/** Specify that using this argument requires another to be present.
+	 * In order for it to be successful, every flag specified must be present.
+	 * > The values are the keys and not flags themselves. E.g do not use `"--bla"`, use the name of the key. */
 	requires?: string[];
 }
 
@@ -79,6 +94,18 @@ export class Command {
 		let firstMultiPositional = -1;
 
 		for (const [i, [k, v]] of Object.entries(args).entries()) {
+			if (v.possible?.length) {
+				v.takesValue = true;
+				const ignoreCase = v.ignoreCase ?? false;
+				const possible = v.possible!;
+				v.validate = (s) => {
+					const sx = ignoreCase ? s.toUpperCase() : s;
+					for (const val of possible) {
+						if (sx === (ignoreCase ? val.toUpperCase() : val)) return undefined;
+					}
+					return `value must be one of ${possible}`;
+				};
+			}
 			for (const other of v.conflicts ?? []) {
 				if (!args[other]) {
 					throw `the arg ${k} specifies a conflict with a non-existing argument ${other}`;
