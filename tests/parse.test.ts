@@ -168,7 +168,7 @@ Deno.test("values", () => {
 			const got = cmd.parse(args);
 			try {
 				assertEquals(expected, got);
-			} catch (e) {
+			} catch (_e) {
 				throw `${name} failed (input was ${input}\nexpected: ${
 					JSON.stringify(expected, undefined, 2)
 				}\ngot: ${JSON.stringify(got, undefined, 2)}`;
