@@ -67,6 +67,7 @@ export class Command {
 	#about?: string;
 	#args: Map<string, ArgState>;
 	#throwOnError = false;
+	#fresh = true;
 
 	/** Constructs a new `Command` instance with the given flags.
 	 * It will throw an exception if the input is invalid.
@@ -315,11 +316,21 @@ export class Command {
 		return processed;
 	}
 
+	#reset() {
+		for (const flag of this.#args.values()) {
+			flag.occurrences = 0;
+			flag.vals = [];
+		}
+
+		this.#fresh = true;
+	}
+
 	/** Parse command line arguments and return an object with their values.
 	 *
-	 * Important: Only call this once per instance.
 	 * Provide `Deno.args` to this method. */
 	parse(argv: string[]): ArgMatches {
+		if (!this.#fresh) this.#reset();
+		this.#fresh = false;
 		argv = this.#preprocess(argv);
 
 		for (let pos = 0; pos < argv.length; pos++) {
