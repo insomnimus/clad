@@ -62,11 +62,14 @@ export type Args = {
 };
 
 /** The return value after parsing.*/
-export type ArgMatches = {
+export interface ArgMatches {
+	/** The flags that take only 1 argument (as in, `takesValue = true, multi = false`).*/
 	str: {[name: string]: string};
+	/** The flags that take multiple values (as in, `takesValue = true, multi = true`).*/
 	arr: {[name: string]: string[]};
+	/** Boolean flags (no value). The values are the number of occurrences, which can be used as truthy values as well as numbers.*/
 	bool: {[name: string]: number};
-};
+}
 
 /** The command.*/
 export class Command {

@@ -26,15 +26,6 @@ For now there is no support for subcommands.
 Make sure to specify an exact version!
 
 ```ts
-import * as clad from "https://deno.land/x/clad/mod.ts";
-// Or take what you need:
-// import { Command } from "https://deno.land/x/clad/mod.ts";
-```
-
-## Usage Examples
-For more examples, check out the [examples folder](examples).
-
-```ts
 import { Command } from "../mod.ts";
 
 const args = new Command("bump-version", {
@@ -57,11 +48,9 @@ const args = new Command("bump-version", {
 	.parse(Deno.args);
 
 // WE can trust the input!
-let [major, minor, patch] = (args.ver as string).split(".").map((x) =>
-	parseInt(x)
-);
+let [major, minor, patch] = args.str.ver!.split(".").map((x) => parseInt(x));
 
-switch ((args.bump as string).toLowerCase()) {
+switch (args.str.bump.toLowerCase()) {
 	case "major": {
 		major++;
 		minor = 0;
@@ -80,7 +69,7 @@ switch ((args.bump as string).toLowerCase()) {
 	}
 }
 
-console.log(`${args.ver} -> ${major}.${minor}.${patch}`);
+console.log(`${args.str.ver} -> ${major}.${minor}.${patch}`);
 ```
 
 ### Output
