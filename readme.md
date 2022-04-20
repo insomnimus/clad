@@ -25,11 +25,11 @@ rust library, [clap](https://github.com/clap-rs/clap).
 ## Unsupported
 For now there is no support for subcommands.
 
-## Import
-Make sure to specify an exact version!
+## Example
+you can find more example in the [examples directory](examples/).
 
 ```ts
-import { Command } from "../mod.ts";
+import { Command } from "https://deno.land/x/clad/mod.ts";
 
 const args = new Command("bump-version", {
 	bump: {
