@@ -61,20 +61,12 @@ export type Args = {
 	[name: string]: Arg;
 };
 
-/** The return value after parsing.
- *
- * The keys will be preserved. */
+/** The return value after parsing.*/
 export type ArgMatches = {
-	[name: string]: Value;
+	str: {[name: string]: string};
+	arr: {[name: string]: string[]};
+	bool: {[name: string]: number};
 };
-
-/** The value a flag can take after parsing.
- *
- * For flags that take no value, the value will be the number of occurrences.
- * For flags that take multiple values, the value will be `string[]`.
- * If the flag has no values, it'll be `undefined`.
- * For flags that take 1 value, it'll be `string`. */
-export type Value = undefined | string | string[] | number;
 
 /** The command.*/
 export class Command {
@@ -452,11 +444,11 @@ export class Command {
 		}
 
 		// everything is fine
-		const obj: ArgMatches = {};
+		const obj: ArgMatches = {str: {}, arr: {}, bool: {}};
 		for (const [key, v] of this.#args.entries()) {
-			if (!v.takesValue) obj[key] = v.occurrences;
-			else if (v.multi) obj[key] = v.vals;
-			else obj[key] = v.vals.at(0);
+			if (!v.takesValue) obj.bool[key] = v.occurrences;
+			else if (v.multi) obj.arr[key] = v.vals;
+			else if(v.vals.length > 0) obj.str[key] = v.vals[0];
 		}
 		return obj;
 	}

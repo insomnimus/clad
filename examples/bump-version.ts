@@ -20,11 +20,9 @@ const args = new Command("bump-version", {
 	.parse(Deno.args);
 
 // WE can trust the input!
-let [major, minor, patch] = (args.ver as string).split(".").map((x) =>
-	parseInt(x)
-);
+let [major, minor, patch] = args.str.ver!.split(".").map((x) => parseInt(x));
 
-switch ((args.bump as string).toLowerCase()) {
+switch (args.str.bump.toLowerCase()) {
 	case "major": {
 		major++;
 		minor = 0;
@@ -43,4 +41,4 @@ switch ((args.bump as string).toLowerCase()) {
 	}
 }
 
-console.log(`${args.ver} -> ${major}.${minor}.${patch}`);
+console.log(`${args.str.ver} -> ${major}.${minor}.${patch}`);

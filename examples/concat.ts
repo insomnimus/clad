@@ -25,9 +25,9 @@ const args = new Command("concat", {
 	.parse(Deno.args);
 
 const mapper = (s: string): string => {
-	if (args.low) return s.toLowerCase();
-	else if (args.cap) return s.toUpperCase();
+	if (args.bool.low) return s.toLowerCase();
+	else if (args.bool.cap) return s.toUpperCase();
 	else return s;
 };
 
-console.log((args.words as string[]).map(mapper).join(args.sep as string));
+console.log(args.arr.words.map(mapper).join(args.str.sep));

@@ -13,7 +13,7 @@ type Basic = {
 
 type Vals = {
 	flags: Args;
-	inputs: [string, ArgMatches][];
+	inputs: [string, { [key: string]: string | number | string[] }][];
 };
 
 const basic: Tests<Basic> = {
@@ -138,9 +138,9 @@ const vals: Tests<Vals> = {
 		inputs: [
 			["1 2 3 4 5", { first: "1", second: "2", trailing: ["3", "4", "5"] }],
 			["1 -- 2 3", { first: "1", second: "2", trailing: ["3"] }],
-			["lol", { first: "lol", second: undefined, trailing: [] }],
+			["lol", { first: "lol", trailing: [] }],
 			["-- -a -b", { first: "-a", second: "-b", trailing: [] }],
-			["-- -ab", { first: "-ab", second: undefined, trailing: [] }],
+			["-- -ab", { first: "-ab", trailing: [] }],
 		],
 	},
 	"default": {
@@ -152,8 +152,8 @@ const vals: Tests<Vals> = {
 			["lol", { a: "default", b: "lol" }],
 			["-- -alol", { a: "default", b: "-alol" }],
 			["asdf -akek", { a: "kek", b: "asdf" }],
-			["-a=asdf", { a: "asdf", b: undefined }],
-			["", { a: "default", b: undefined }],
+			["-a=asdf", { a: "asdf" }],
+			["", { a: "default" }],
 		],
 	},
 	"override -h and --help": {
@@ -171,7 +171,12 @@ const vals: Tests<Vals> = {
 Deno.test("values", () => {
 	for (const [name, test] of Object.entries(vals)) {
 		const cmd = new Command(name, test.flags).throwOnError(true);
-		for (const [input, expected] of test.inputs) {
+		for (const [input, _expected] of test.inputs) {
+			const expected: ArgMatches = { str: {}, arr: {}, bool: {} };
+			for (const [k, v] of Object.entries(_expected)) {
+				if (Array.isArray(v)) expected.arr[k] = v;
+				else if (typeof v === "string") expected.str[k] = v;
+			}
 			const args = input === "" ? [] : input.split(/\s+/);
 			const got = cmd.parse(args);
 			try {
