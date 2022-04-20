@@ -1,5 +1,6 @@
 # Clad
-[![deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https://deno.land/x/clad@v0.2.2/mod.tshttps://doc.deno.land/https://deno.land/x/clad/mod.ts)
+[![build badge](https://github.com/insomnimus/clad/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/insomnimus/clad/actions/workflows/main.yml)
+[![deno doc](https://doc.deno.land/badge.svg)](https://doc.deno.land/https://deno.land/x/clad/mod.ts)
 
 Clad is a simple command line arguments parser. It is inspired by the awesome
 rust library, [clap](https://github.com/clap-rs/clap).
@@ -12,6 +13,8 @@ rust library, [clap](https://github.com/clap-rs/clap).
 - You can specify any flag to take multiple values.
 - You can specify default values.
 - You can limit possible values to a set. (can set the comparison to be case insensitive as well).
+- You can specify a flag as conflicting with another.
+- You can specify a flag as requiring another.
 - Pass positional values that start with `-` after `--`. E.g.
   `./amyapp -- -somevalue`.
 - Supports required/optional flags.
