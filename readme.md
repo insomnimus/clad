@@ -86,7 +86,7 @@ console.log(`${args.str.ver} -> ${major}.${minor}.${patch}`);
 
 ### Example Session
 ```output
-+ deno run ./bump-version.ts -h
+$ deno run ./bump-version.ts -h
 USAGE: bump-version [OPTIONS] ARGS...
 Increment a semantic version
 
@@ -97,19 +97,19 @@ OPTIONS:
 
 ARGS:
      <ver>: The version to bump (required)
-+ deno run ./bump-version.ts --version
+$ deno run ./bump-version.ts --version
 bump-version 0.1.0
-+ deno run ./bump-version.ts --bump major 0.1.0
+$ deno run ./bump-version.ts --bump major 0.1.0
 0.1.0 -> 1.0.0
-+ deno run ./bump-version.ts 0.1.0 -bMiNoR
+$ deno run ./bump-version.ts 0.1.0 -bMiNoR
 0.1.0 -> 0.2.0
-+ deno run ./bump-version.ts 0.1.0
+$ deno run ./bump-version.ts 0.1.0
 error: missing required value for -b --bump <bump>
 run with --help for more info
-+ deno run ./bump-version.ts -b mayor 0.1.0
+$ deno run ./bump-version.ts -b mayor 0.1.0
 error: failed to validate the 'mayor' value of -b --bump <bump>: value must be one of [major, minor, patch]
 run with --help for more info
-+ deno run ./bump-version.ts not_a_version --bump=patch
+$ deno run ./bump-version.ts not_a_version --bump=patch
 error: failed to validate the 'not_a_version' value of <ver>: the value must be in the form major.minor.patch where each field is a non-negative number
 run with --help for more info
 ```

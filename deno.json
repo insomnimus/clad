@@ -5,6 +5,7 @@
 		},
 		"options": {
 			"useTabs": true,
+			"lineWidth": 100,
 			"singleQuote": false
 		}
 	}

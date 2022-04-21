@@ -472,9 +472,7 @@ export class Command {
 				flag.vals = [flag.default!];
 			}
 			for (const val of flag.vals) {
-				const res = flag.validate === undefined
-					? undefined
-					: flag.validate(val);
+				const res = flag.validate === undefined ? undefined : flag.validate(val);
 				if (res !== undefined) {
 					this.#errAndExit(
 						`failed to validate the '${val}' value of ${flag.name}: ${res}`,
@@ -496,22 +494,16 @@ export class Command {
 
 function argHelp(arg: ArgState): string {
 	const def = (arg.default !== undefined) ? ` [default: ${arg.default}]` : "";
-	const possible = arg.possible?.length
-		? ` [possible values: ${arg.possible!.join(", ")}]`
-		: "";
+	const possible = arg.possible?.length ? ` [possible values: ${arg.possible!.join(", ")}]` : "";
 	const req = (!arg.takesValue || !arg.required) ? "" : " (required)";
 	const multi = arg.multi ? "..." : "";
 	const valname = (arg.isPositional || arg.takesValue) ? ` <${arg.key}>` : "";
-	const flags = (arg.flags?.filter((x) => x.length === 1) ?? []).map((x) =>
-		"-" + x
-	).concat(
+	const flags = (arg.flags?.filter((x) => x.length === 1) ?? []).map((x) => "-" + x).concat(
 		(arg.flags?.filter((x) => x.length > 1) ?? []).map((x) => "--" + x),
 	)
 		.join(", ");
 
-	return `${flags}${valname}${multi}: ${
-		arg.help ?? "No help provided"
-	}${req}${possible}${def}`;
+	return `${flags}${valname}${multi}: ${arg.help ?? "No help provided"}${req}${possible}${def}`;
 }
 
 function find<T, F extends { (x: T): boolean }>(
