@@ -21,6 +21,7 @@ const args = new Command("concat", {
 		required: true,
 	},
 })
+	.version("0.1.0")
 	.about("Concatenate words with a separator")
 	.parse(Deno.args);
 

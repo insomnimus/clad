@@ -25,28 +25,36 @@ rust library, [clap](https://github.com/clap-rs/clap).
 ## Unsupported
 For now there is no support for subcommands.
 
-## Example
-you can find more example in the [examples directory](examples/).
+## Usage Example
+> Note: Check out the [examples directory](examples/) for more.
 
 ```ts
-import { Command } from "https://deno.land/x/clad/mod.ts";
+// examples/bump-version.ts
+import { Command } from "../mod.ts";
 
 const args = new Command("bump-version", {
 	bump: {
+		flags: ["b", "bump"],
 		help: "Bump which field?",
+		// Only these valeus will be accepted
 		possible: ["major", "minor", "patch"],
+		// Match above values case insensitively
 		ignoreCase: true,
+		// This flag must be present
 		required: true,
 	},
 	ver: {
+		// We don't specify `flag` because this is a positional
 		help: "The version to bump",
 		required: true,
+		// Run this callback to validate the input
 		validate: (s) =>
 			s.match(/^\d+\.\d+\.\d+$/)
 				? undefined
 				: "the value must be in the form major.minor.patch where each field is a non-negative number",
 	},
 })
+	.version("0.1.0")
 	.about("Increment a semantic version")
 	.parse(Deno.args);
 
@@ -73,30 +81,35 @@ switch (args.str.bump.toLowerCase()) {
 }
 
 console.log(`${args.str.ver} -> ${major}.${minor}.${patch}`);
+
 ```
 
-### Output
+### Example Session
 ```output
-$ deno run ./bump-version.ts -h
++ deno run ./bump-version.ts -h
 USAGE: bump-version [OPTIONS] ARGS...
 Increment a semantic version
 
 OPTIONS:
+    -b, --bump <bump>: Bump which field? (required) [possible values: major, minor, patch]
+-V, --version: Show version information and exit
     -h, --help: Show this message and exit
 
 ARGS:
-     <bump>: Bump which field? (required) [possible values: major, minor, patch]
      <ver>: The version to bump (required)
-$ deno run ./bump-version.ts major 1.2.3
-1.2.3 -> 2.0.0
-$ deno run ./bump-version.ts Minor 1.2.3
-1.2.3 -> 1.3.0
-$ deno run ./bump-version.ts PATCH 1.2.3
-1.2.3 -> 1.2.4
-$ deno run ./bump-version.ts lol 1.2.3
-error: failed to validate the 'lol' value of <bump>: value must be one of [major, minor, patch]
++ deno run ./bump-version.ts --version
+bump-version 0.1.0
++ deno run ./bump-version.ts --bump major 0.1.0
+0.1.0 -> 1.0.0
++ deno run ./bump-version.ts 0.1.0 -bMiNoR
+0.1.0 -> 0.2.0
++ deno run ./bump-version.ts 0.1.0
+error: missing required value for -b --bump <bump>
 run with --help for more info
-$ deno run ./bump-version.ts minor 1.2.3.4.5
-error: failed to validate the '1.2.3.4.5' value of <ver>: the value must be in the form major.minor.patch where each field is a non-negative number
++ deno run ./bump-version.ts -b mayor 0.1.0
+error: failed to validate the 'mayor' value of -b --bump <bump>: value must be one of [major, minor, patch]
+run with --help for more info
++ deno run ./bump-version.ts not_a_version --bump=patch
+error: failed to validate the 'not_a_version' value of <ver>: the value must be in the form major.minor.patch where each field is a non-negative number
 run with --help for more info
 ```

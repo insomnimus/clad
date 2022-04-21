@@ -64,11 +64,11 @@ export type Args = {
 /** The return value after parsing.*/
 export interface ArgMatches {
 	/** The flags that take only 1 argument (as in, `takesValue = true, multi = false`).*/
-	str: {[name: string]: string};
+	str: { [name: string]: string };
 	/** The flags that take multiple values (as in, `takesValue = true, multi = true`).*/
-	arr: {[name: string]: string[]};
+	arr: { [name: string]: string[] };
 	/** Boolean flags (no value). The values are the number of occurrences, which can be used as truthy values as well as numbers.*/
-	bool: {[name: string]: number};
+	bool: { [name: string]: number };
 }
 
 /** The command.*/
@@ -78,6 +78,7 @@ export class Command {
 	#args: Map<string, ArgState>;
 	#throwOnError = false;
 	#fresh = true;
+	#version?: string;
 
 	/** Constructs a new `Command` instance with the given flags.
 	 * It will throw an exception if the input is invalid.
@@ -169,6 +170,15 @@ export class Command {
 		return this;
 	}
 
+	/** Give this command a version.
+	 *
+	 * You can chain this method (it returns `this`).
+	 * > This will enable the version flags if they don't exist: `-V` and `--version`. */
+	version(version: string): Command {
+		this.#version = version;
+		return this;
+	}
+
 	/** Throw an exception instead of exiting the app when the input doesn't validate.*/
 	throwOnError(yes: boolean): Command {
 		this.#throwOnError = yes;
@@ -221,26 +231,46 @@ export class Command {
 		}
 	}
 
+	#versionAndExit(): never {
+		console.log(`${this.#name} ${this.#version ?? "unknown version"}`);
+		Deno.exit(0);
+	}
+
 	#helpAndExit(_long: boolean): never {
 		const positionals: ArgState[] = [];
 		const opts: ArgState[] = [];
 		let shortHelp = true;
 		let longHelp = true;
+		let shortVersion = true;
+		let longVersion = true;
 
 		for (const x of this.#args.values()) {
 			if (x.isPositional) positionals.push(x);
 			else {
 				opts.push(x);
-				if ((shortHelp || longHelp) && x.flags) {
+				if ((shortHelp || longHelp || shortVersion || longVersion) && x.flags) {
 					for (const s of x.flags) {
-						if (shortHelp && s === "h") shortHelp = false;
-						if (longHelp && s === "help") longHelp = false;
+						switch (s) {
+							case "-V":
+								shortVersion = false;
+								break;
+							case "--version":
+								longVersion = false;
+								break;
+							case "-h":
+								shortHelp = false;
+								break;
+							case "--help":
+								longHelp = false;
+								break;
+						}
 					}
 				}
 			}
 		}
 
-		const hasOpt = shortHelp || longHelp || opts.length > 0;
+		const hasOpt = shortHelp || longHelp || shortVersion || longVersion ||
+			opts.length > 0;
 		const sOpt = hasOpt ? " [OPTIONS]" : "";
 		const sPos = positionals.length > 0 ? " ARGS..." : "";
 		console.log(`USAGE: ${this.#name}${sOpt}${sPos}`);
@@ -255,10 +285,16 @@ export class Command {
 			}
 
 			let help = "";
+			let ver = "";
 			if (shortHelp && longHelp) help = "-h, --help";
 			else if (shortHelp) help = "-h";
 			else if (longHelp) help = "--help";
 
+			if (shortVersion && longVersion) ver = "-V, --version";
+			else if (shortVersion) ver = "-V";
+			else if (longVersion) ver = "--version";
+
+			if (ver !== "") console.log(`${ver}: Show version information and exit`);
 			if (help !== "") console.log(`    ${help}: Show this message and exit`);
 		}
 
@@ -373,13 +409,14 @@ export class Command {
 			}
 			const flag = this.#get(s);
 			if (flag === undefined) {
-				if (s === "-h") this.#helpAndExit(false);
-				else if (s === "--help") this.#helpAndExit(true);
-				else if (s.startsWith("-")) {
+				if (s === "-h" || s === "--help") this.#helpAndExit(false);
+				else if (this.#version && (s === "-V" || s === "--version")) {
+					this.#versionAndExit();
+				} else if (s.startsWith("-")) {
 					this.#errAndExit(
 						`unknown option \`${s}\`\nif you meant to supply \`${s}\` as a value rather than a flag, use \`-- ${s}\``,
 					);
-				} else this.#errAndExit(`unexpected value ${s}`);
+				} else this.#errAndExit(`unexpected value \`${s}\``);
 			}
 
 			flag.occurrences++;
@@ -447,11 +484,11 @@ export class Command {
 		}
 
 		// everything is fine
-		const obj: ArgMatches = {str: {}, arr: {}, bool: {}};
+		const obj: ArgMatches = { str: {}, arr: {}, bool: {} };
 		for (const [key, v] of this.#args.entries()) {
 			if (!v.takesValue) obj.bool[key] = v.occurrences;
 			else if (v.multi) obj.arr[key] = v.vals;
-			else if(v.vals.length > 0) obj.str[key] = v.vals[0];
+			else if (v.vals.length > 0) obj.str[key] = v.vals[0];
 		}
 		return obj;
 	}
