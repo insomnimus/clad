@@ -241,8 +241,8 @@ export class Command {
 		const opts: ArgState[] = [];
 		let shortHelp = true;
 		let longHelp = true;
-		let shortVersion = true;
-		let longVersion = true;
+		let shortVersion = this.#version !== undefined;
+		let longVersion = this.#version !== undefined;
 
 		for (const x of this.#args.values()) {
 			if (x.isPositional) positionals.push(x);
