@@ -297,7 +297,7 @@ export class Command {
 			else if (shortVersion) ver = "-V";
 			else if (longVersion) ver = "--version";
 
-			if (ver !== "") console.log(`${ver}: Show version information and exit`);
+			if (ver !== "") console.log(`    ${ver}: Show version information and exit`);
 			if (help !== "") console.log(`    ${help}: Show this message and exit`);
 		}
 
