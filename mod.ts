@@ -43,9 +43,9 @@ export interface Arg {
 	 * In order for it to be successful, every flag specified must be present.
 	 * > The values are the keys and not flags themselves. E.g do not use `"--bla"`, use the name of the key. */
 	requires?: string[];
-	/** Require *this* arg to be set if none of the other args specified are present.*/
+	/** Require *this* arg to be set unless any of these flags are present.*/
 	requiredUnlessAny?: string[];
-	/** Require *this* arg to be set if any of the arguments specified is not set.*/
+	/** Require *this* arg to be set if none of these flags are present.*/
 	requiredUnlessAll?: string[];
 }
 

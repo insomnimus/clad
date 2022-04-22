@@ -15,6 +15,8 @@ rust library, [clap](https://github.com/clap-rs/clap).
 - You can limit possible values to a set. (can set the comparison to be case insensitive as well).
 - You can specify a flag as conflicting with another.
 - You can specify a flag as requiring another.
+- You can specify a flag as being required unless any of a list of other flags are present.
+- You can set a flag as being required if none of a list of flags are present.
 - Pass positional values that start with `-` after `--`. E.g.
   `./amyapp -- -somevalue`.
 - Supports required/optional flags.
