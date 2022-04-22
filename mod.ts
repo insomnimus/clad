@@ -43,6 +43,10 @@ export interface Arg {
 	 * In order for it to be successful, every flag specified must be present.
 	 * > The values are the keys and not flags themselves. E.g do not use `"--bla"`, use the name of the key. */
 	requires?: string[];
+	/** Require *this* arg to be set if none of the other args specified are present.*/
+	requiredUnlessAny?: string[];
+	/** Require *this* arg to be set if any of the arguments specified is not set.*/
+	requiredUnlessAll?: string[];
 }
 
 interface ArgState extends Arg {
@@ -308,7 +312,7 @@ export class Command {
 	}
 
 	#errAndExit(msg: string, suggestHelp = true): never {
-		if (this.#throwOnError) throw `argument valdiation failed: ${msg}`;
+		if (this.#throwOnError) throw `argument validation failed: ${msg}`;
 
 		console.log(`error: ${msg}`);
 		if (suggestHelp) console.log("run with --help for more info");
@@ -435,7 +439,7 @@ export class Command {
 		// Validation
 		for (const flag of this.#args.values()) {
 			if (flag.occurrences > 0 && flag.conflicts?.length) {
-				for (const other of flag.conflicts!.map(s => this.#args.get(s))) {
+				for (const other of flag.conflicts!.map(x => this.#args.get(x))) {
 					if (other!.occurrences > 0) {
 						this.#errAndExit(`${flag.name} cannot be used together with ${other?.name}`, false);
 					}
@@ -450,6 +454,51 @@ export class Command {
 					}
 				}
 			}
+
+			// check requiredUnlessAny
+			if (flag.requiredUnlessAny?.length && flag.occurrences === 0 && flag.default === undefined) {
+				const others = flag
+					.requiredUnlessAny!.map(x => this.#args.get(x))
+					.filter(x => x !== undefined);
+				let exists = others.length === 0;
+				for (const other of others) {
+					if (other!.default !== undefined || other!.occurrences > 0) {
+						exists = true;
+						break;
+					}
+				}
+				if (!exists) {
+					if (others.length === 1)
+						this.#errAndExit(`at least one of ${flag.name} or ${others[0]!.name} must be present`);
+					else
+						this.#errAndExit(
+							`at least one of ${others.map(x => x!.name).join(", ")} or ${
+								flag.name
+							} must be present`
+						);
+				}
+			}
+
+			// check requiredUnlessAll
+			if (flag.requiredUnlessAll?.length && flag.occurrences === 0 && flag.default === undefined) {
+				const others = flag
+					.requiredUnlessAll!.map(x => this.#args.get(x))
+					.filter(x => x !== undefined);
+				if (
+					others.length > 0 &&
+					!others.every(x => x!.default !== undefined || x!.occurrences > 0)
+				) {
+					if (others.length === 1)
+						this.#errAndExit(`at least one of ${flag.name} or ${others[0]!.name} must be present`);
+					else
+						this.#errAndExit(
+							`at least ${flag.name} or all of [${others
+								.map(x => x!.name)
+								.join(", ")}] must be present`
+						);
+				}
+			}
+
 			if (!flag.multi && flag.occurrences > 1) {
 				this.#errAndExit(`${flag.name} can be specified only once`);
 			} // flags are always optional

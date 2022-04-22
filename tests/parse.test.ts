@@ -83,6 +83,37 @@ const basic: Tests<Basic> = {
 			kind: { possible: ["major", "minor", "patch"] },
 		},
 	},
+	"required unless any": {
+		ok: ["asdf", "-a", "-b lel -c lel", "-c lel -c lel", "-ablol -ckek", "asdf -abkek -clel"],
+		fail: ["", "-d"],
+		flags: {
+			asdf: { requiredUnlessAny: ["a", "b", "c"] },
+			a: { flags: ["a"] },
+			b: { flags: ["b"], takesValue: true },
+			c: { flags: ["c"], takesValue: true, multi: true },
+			d: { flags: ["d"] },
+		},
+	},
+	"required unless all": {
+		ok: ["-abc", "-a -b -c", "--asdf=abcdefg"],
+		fail: ["", "-a", "-b", "-c", "-ab", "-ac", "-bc"],
+		flags: {
+			asdf: { flags: ["asdf"], requiredUnlessAll: ["a", "b", "c"], takesValue: true },
+			a: { flags: ["a"] },
+			b: { flags: ["b"] },
+			c: { flags: ["c"] },
+		},
+	},
+	"complex requirements": {
+		ok: ["--asdf -bc", "-c --asdf", "--asdf", ""],
+		fail: ["-a"],
+		flags: {
+			asdf: { flags: ["asdf"], requiredUnlessAny: ["a", "b"] },
+			a: { default: "i am a", requiredUnlessAll: ["b", "c"], flags: ["a"] },
+			b: { flags: ["b"] },
+			c: { requires: ["asdf"], flags: ["c"] },
+		},
+	},
 };
 
 Deno.test("basic", () => {
