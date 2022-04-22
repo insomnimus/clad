@@ -512,7 +512,7 @@ export class Command {
 			for (const val of flag.vals) {
 				const res = flag.validate === undefined ? undefined : flag.validate(val);
 				if (res !== undefined) {
-					this.#errAndExit(`failed to validate the '${val}' value of ${flag.name}: ${res}`);
+					this.#errAndExit(`failed to validate the \`${val}\` value of ${flag.name}: ${res}`);
 				}
 			}
 		}
