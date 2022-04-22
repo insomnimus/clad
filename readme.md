@@ -10,17 +10,17 @@ rust library, [clap](https://github.com/clap-rs/clap).
 - `--option value` and `--option=value` are allowed.
 - `-f value`, `-f=value` and `-fvalue` are also allowed.
 - You can combine short flags: `-Syu` is the same as `-S -y -u`.
+- Pass positional values that start with `-` after `--`. E.g.
+  `./amyapp -- -somevalue`.
+- Supports required/optional flags.
+- Supports per-argument validation with a closure.
 - You can specify any flag to take multiple values.
 - You can specify default values.
 - You can limit possible values to a set. (can set the comparison to be case insensitive as well).
 - You can specify a flag as conflicting with another.
 - You can specify a flag as requiring another.
 - You can specify a flag as being required unless any of a list of other flags are present.
-- You can set a flag as being required if none of a list of flags are present.
-- Pass positional values that start with `-` after `--`. E.g.
-  `./amyapp -- -somevalue`.
-- Supports required/optional flags.
-- Supports per-argument validation with a closure.
+- You can specify a flag as being required if none of a list of flags are present.
 - Simple interface.
 - Auto generated help message.
 
