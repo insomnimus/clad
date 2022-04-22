@@ -16,7 +16,7 @@ const args = new Command("bump-version", {
 		help: "The version to bump",
 		required: true,
 		// Run this callback to validate the input
-		validate: (s) =>
+		validate: s =>
 			s.match(/^\d+\.\d+\.\d+$/)
 				? undefined
 				: "the value must be in the form major.minor.patch where each field is a non-negative number",
@@ -27,7 +27,7 @@ const args = new Command("bump-version", {
 	.parse(Deno.args);
 
 // WE can trust the input!
-let [major, minor, patch] = args.str.ver!.split(".").map((x) => parseInt(x));
+let [major, minor, patch] = args.str.ver!.split(".").map(x => parseInt(x));
 
 switch (args.str.bump.toLowerCase()) {
 	case "major": {

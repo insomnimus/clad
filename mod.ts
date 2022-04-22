@@ -94,7 +94,7 @@ export class Command {
 				v.takesValue = true;
 				const ignoreCase = v.ignoreCase ?? false;
 				const possible = v.possible!;
-				v.validate = (s) => {
+				v.validate = s => {
 					const sx = ignoreCase ? s.toUpperCase() : s;
 					for (const val of possible) {
 						if (sx === (ignoreCase ? val.toUpperCase() : val)) return undefined;
@@ -132,8 +132,8 @@ export class Command {
 			let name: string;
 			// if it isn't positional
 			if (v.flags!.length !== 0) {
-				const shorts = v.flags!.filter((x) => x.length === 1);
-				const longs = v.flags!.filter((x) => x.length > 1);
+				const shorts = v.flags!.filter(x => x.length === 1);
+				const longs = v.flags!.filter(x => x.length > 1);
 				if (shorts.length > 0 && longs.length > 0) {
 					name = `-${shorts[0]} --${longs[0]}`;
 				} else if (shorts.length > 0) name = "-" + shorts[0];
@@ -188,7 +188,7 @@ export class Command {
 	#shorts(): Map<string, boolean> {
 		const map = new Map<string, boolean>();
 		for (const arg of this.#args.values()) {
-			for (const s of arg.flags!.filter((s) => s.length === 1)) {
+			for (const s of arg.flags!.filter(s => s.length === 1)) {
 				map.set(s, arg.takesValue ?? false);
 			}
 		}
@@ -198,7 +198,7 @@ export class Command {
 	#longs(): Map<string, boolean> {
 		const map = new Map<string, boolean>();
 		for (const arg of this.#args.values()) {
-			for (const s of arg.flags!.filter((s) => s.length > 1)) {
+			for (const s of arg.flags!.filter(s => s.length > 1)) {
 				map.set(s, arg.takesValue ?? false);
 			}
 		}
@@ -209,10 +209,10 @@ export class Command {
 		if (s.startsWith("--")) {
 			if (s.length == 3) return undefined;
 			const name = s.substring(2);
-			return find(this.#args.values(), (x) => x.flags?.includes(name) ?? false);
+			return find(this.#args.values(), x => x.flags?.includes(name) ?? false);
 		} else if (s.length > 1 && s.startsWith("-")) {
 			const name = s.substring(1);
-			return find(this.#args.values(), (x) => x.flags?.includes(name) ?? false);
+			return find(this.#args.values(), x => x.flags?.includes(name) ?? false);
 		} else {
 			// find the first positional that has no value
 
@@ -222,7 +222,7 @@ export class Command {
 			}
 
 			if (positionals.length === 0) return undefined;
-			const arg = positionals.find((x) => x.occurrences === 0);
+			const arg = positionals.find(x => x.occurrences === 0);
 			if (arg) return arg;
 			// or return the last positional if it's multi
 			if (positionals[positionals.length - 1].multi) {
@@ -269,8 +269,7 @@ export class Command {
 			}
 		}
 
-		const hasOpt = shortHelp || longHelp || shortVersion || longVersion ||
-			opts.length > 0;
+		const hasOpt = shortHelp || longHelp || shortVersion || longVersion || opts.length > 0;
 		const sOpt = hasOpt ? " [OPTIONS]" : "";
 		const sPos = positionals.length > 0 ? " ARGS..." : "";
 		console.log(`USAGE: ${this.#name}${sOpt}${sPos}`);
@@ -414,7 +413,7 @@ export class Command {
 					this.#versionAndExit();
 				} else if (s.startsWith("-")) {
 					this.#errAndExit(
-						`unknown option \`${s}\`\nif you meant to supply \`${s}\` as a value rather than a flag, use \`-- ${s}\``,
+						`unknown option \`${s}\`\nif you meant to supply \`${s}\` as a value rather than a flag, use \`-- ${s}\``
 					);
 				} else this.#errAndExit(`unexpected value \`${s}\``);
 			}
@@ -426,9 +425,7 @@ export class Command {
 				else {
 					pos++;
 					if (pos >= argv.length) {
-						this.#errAndExit(
-							`the argument ${flag.name} requires a value but none was supplied`,
-						);
+						this.#errAndExit(`the argument ${flag.name} requires a value but none was supplied`);
 					}
 					flag.vals.push(argv[pos]);
 				}
@@ -438,26 +435,18 @@ export class Command {
 		// Validation
 		for (const flag of this.#args.values()) {
 			if (flag.occurrences > 0 && flag.conflicts?.length) {
-				for (const other of flag.conflicts!.map((s) => this.#args.get(s))) {
+				for (const other of flag.conflicts!.map(s => this.#args.get(s))) {
 					if (other!.occurrences > 0) {
-						this.#errAndExit(
-							`${flag.name} cannot be used together with ${other?.name}`,
-							false,
-						);
+						this.#errAndExit(`${flag.name} cannot be used together with ${other?.name}`, false);
 					}
 				}
 			}
 			if (flag.occurrences > 0 && flag.requires?.length) {
-				for (
-					const other of flag.requires!.map((s) => this.#args.get(s)).filter((
-						x,
-					) => x !== undefined && x.default === undefined)
-				) {
+				for (const other of flag
+					.requires!.map(s => this.#args.get(s))
+					.filter(x => x !== undefined && x.default === undefined)) {
 					if (other!.occurrences === 0) {
-						this.#errAndExit(
-							`using ${flag.name} requires ${other!.name} to be present`,
-							false,
-						);
+						this.#errAndExit(`using ${flag.name} requires ${other!.name} to be present`, false);
 					}
 				}
 			}
@@ -474,9 +463,7 @@ export class Command {
 			for (const val of flag.vals) {
 				const res = flag.validate === undefined ? undefined : flag.validate(val);
 				if (res !== undefined) {
-					this.#errAndExit(
-						`failed to validate the '${val}' value of ${flag.name}: ${res}`,
-					);
+					this.#errAndExit(`failed to validate the '${val}' value of ${flag.name}: ${res}`);
 				}
 			}
 		}
@@ -493,23 +480,20 @@ export class Command {
 }
 
 function argHelp(arg: ArgState): string {
-	const def = (arg.default !== undefined) ? ` [default: ${arg.default}]` : "";
+	const def = arg.default !== undefined ? ` [default: ${arg.default}]` : "";
 	const possible = arg.possible?.length ? ` [possible values: ${arg.possible!.join(", ")}]` : "";
-	const req = (!arg.takesValue || !arg.required) ? "" : " (required)";
+	const req = !arg.takesValue || !arg.required ? "" : " (required)";
 	const multi = arg.multi ? "..." : "";
-	const valname = (arg.isPositional || arg.takesValue) ? ` <${arg.key}>` : "";
-	const flags = (arg.flags?.filter((x) => x.length === 1) ?? []).map((x) => "-" + x).concat(
-		(arg.flags?.filter((x) => x.length > 1) ?? []).map((x) => "--" + x),
-	)
+	const valname = arg.isPositional || arg.takesValue ? ` <${arg.key}>` : "";
+	const flags = (arg.flags?.filter(x => x.length === 1) ?? [])
+		.map(x => "-" + x)
+		.concat((arg.flags?.filter(x => x.length > 1) ?? []).map(x => "--" + x))
 		.join(", ");
 
 	return `${flags}${valname}${multi}: ${arg.help ?? "No help provided"}${req}${possible}${def}`;
 }
 
-function find<T, F extends { (x: T): boolean }>(
-	iter: IterableIterator<T>,
-	fn: F,
-): T | undefined {
+function find<T, F extends { (x: T): boolean }>(iter: IterableIterator<T>, fn: F): T | undefined {
 	for (const x of iter) if (fn(x)) return x;
 	return undefined;
 }

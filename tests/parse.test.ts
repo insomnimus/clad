@@ -18,16 +18,7 @@ type Vals = {
 
 const basic: Tests<Basic> = {
 	"long flags": {
-		ok: [
-			"",
-			"--name wow",
-			"-nwow",
-			"-n wow",
-			"-n=wow",
-			"--name=wow",
-			"-fnwow",
-			"-fn=wow",
-		],
+		ok: ["", "--name wow", "-nwow", "-n wow", "-n=wow", "--name=wow", "-fnwow", "-fn=wow"],
 		fail: ["-f -f", "-f=wow", "-n", "--name", "-fn"],
 		flags: {
 			name: { flags: ["n", "name"], takesValue: true },
@@ -44,15 +35,7 @@ const basic: Tests<Basic> = {
 	},
 	"conflict": {
 		ok: ["-l asdf", "-u asdf e", "-- asdf wow bar", "-l -- -u"],
-		fail: [
-			"-lu failme",
-			"-l -u nope",
-			"-ul lol",
-			"-l --up",
-			"--low --up",
-			"-l -l",
-			"--up -u",
-		],
+		fail: ["-lu failme", "-l -u nope", "-ul lol", "-l --up", "--low --up", "-l -l", "--up -u"],
 		flags: {
 			low: { flags: ["l", "low"], conflicts: ["up"] },
 			up: { flags: ["u", "up"], conflicts: ["low"] },
@@ -66,7 +49,7 @@ const basic: Tests<Basic> = {
 			num: {
 				multi: true,
 				flags: ["n", "num"],
-				validate: (s) => s.match(/^\d+$/) ? undefined : "",
+				validate: s => (s.match(/^\d+$/) ? undefined : ""),
 			},
 		},
 	},
@@ -182,9 +165,11 @@ Deno.test("values", () => {
 			try {
 				assertEquals(expected, got);
 			} catch (_e) {
-				throw `${name} failed (input was ${input}\nexpected: ${
-					JSON.stringify(expected, undefined, 2)
-				}\ngot: ${JSON.stringify(got, undefined, 2)}`;
+				throw `${name} failed (input was ${input}\nexpected: ${JSON.stringify(
+					expected,
+					undefined,
+					2
+				)}\ngot: ${JSON.stringify(got, undefined, 2)}`;
 			}
 		}
 	}
