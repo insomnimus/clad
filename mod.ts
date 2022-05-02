@@ -533,13 +533,16 @@ function argHelp(arg: ArgState): string {
 	const possible = arg.possible?.length ? ` [possible values: ${arg.possible!.join(", ")}]` : "";
 	const req = !arg.takesValue || !arg.required ? "" : " (required)";
 	const multi = arg.multi ? "..." : "";
-	const valname = arg.isPositional || arg.takesValue ? ` <${arg.key}>` : "";
+	const valname = arg.isPositional || arg.takesValue ? `<${arg.key}>` : "";
 	const flags = (arg.flags?.filter(x => x.length === 1) ?? [])
 		.map(x => "-" + x)
 		.concat((arg.flags?.filter(x => x.length > 1) ?? []).map(x => "--" + x))
 		.join(", ");
+	const sep = flags.length !== 0 && arg.takesValue ? " " : "";
 
-	return `${flags}${valname}${multi}: ${arg.help ?? "No help provided"}${req}${possible}${def}`;
+	return `${flags}${sep}${valname}${multi}: ${
+		arg.help ?? "No help provided"
+	}${req}${possible}${def}`;
 }
 
 function find<T, F extends { (x: T): boolean }>(iter: IterableIterator<T>, fn: F): T | undefined {
